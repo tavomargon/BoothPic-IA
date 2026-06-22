@@ -1,0 +1,140 @@
+version: '3.8'
+
+services:
+  # Base de datos principal
+  postgres:
+    image: postgres:15-alpine
+    container_name: boothpic-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-boothpic}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-boothpic_password}
+      POSTGRES_DB: ${DB_NAME:-boothpic_db}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-boothpic}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - boothpic-network
+
+  # Redis para caché y sesiones
+  redis:
+    image: redis:7-alpine
+    container_name: boothpic-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - boothpic-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: boothpic-backend
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DATABASE_URL: postgresql://${DB_USER:-boothpic}:${DB_PASSWORD:-boothpic_password}@postgres:5432/${DB_NAME:-boothpic_db}
+      REDIS_URL: redis://redis:6379
+      API_PORT: ${API_PORT:-3000}
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "${API_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - uploads:/app/uploads
+    networks:
+      - boothpic-network
+    restart: unless-stopped
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: boothpic-frontend
+    environment:
+      REACT_APP_API_URL: ${API_URL:-http://localhost:3000}
+      REACT_APP_ENV: ${REACT_APP_ENV:-development}
+    ports:
+      - "${FRONTEND_PORT:-3001}:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - boothpic-network
+    restart: unless-stopped
+
+  # Nginx como proxy reverso (opcional)
+  nginx:
+    image: nginx:alpine
+    container_name: boothpic-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - uploads:/usr/share/nginx/html/uploads:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - boothpic-network
+    restart: unless-stopped
+    profiles:
+      - production
+
+  # MinIO para almacenamiento de objetos (opcional)
+  minio:
+    image: minio/minio:latest
+    container_name: boothpic-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/minio_data
+    command: server /minio_data --console-address ":9001"
+    networks:
+      - boothpic-network
+    profiles:
+      - with-storage
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  uploads:
+    driver: local
+  minio_data:
+    driver: local
+
+networks:
+  boothpic-network:
+    driver: bridge

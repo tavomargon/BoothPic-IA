@@ -1,0 +1,113 @@
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Entorno virtual y dependencias
+venv/
+env/
+ENV/
+.venv
+node_modules/
+package-lock.json
+yarn.lock
+
+# Archivos de configuración local
+.env
+.env.local
+.env.*.local
+.env*.local
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+.classpath
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Directorios de compilación y distribución
+dist/
+build/
+*.egg-info/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Directorios de datos y almacenamiento
+uploads/
+media/
+storage/
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Archivos temporales
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Archivos sensibles
+*.key
+*.pem
+secrets/
+.credentials
+
+# Cobertura de tests
+coverage/
+.coverage
+htmlcov/
+
+# Caché
+.cache/
+*.cache
+
+# Directorios específicos de la aplicación
+public/uploads/
+server/uploads/
+client/build/
+
+# Archivos de compilación específicos del proyecto
+dist/
+out/
+
+# Pruebas
+.nyc_output/
+coverage/
+jest-coverage/
+
+# Misc
+.DS_Store
+.AppleDouble
+.LSOverride
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Archivos de bloqueo
+.lock
+.~lock*
